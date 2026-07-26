@@ -84,6 +84,9 @@ jobs:
             target/x86_64-apple-darwin/release/liboronbox_network.dylib \
             target/aarch64-apple-darwin/release/liboronbox_network.dylib \
             -output package/lib/liboronbox_network.dylib
+          install_name_tool \
+            -id "@rpath/liboronbox_network.dylib" \
+            package/lib/liboronbox_network.dylib
           cp include/oronbox_network.h package/include/
           cp LICENSE README.md THIRD_PARTY_NOTICES.md package/
           tar -czf "$asset" -C package lib include LICENSE README.md THIRD_PARTY_NOTICES.md
