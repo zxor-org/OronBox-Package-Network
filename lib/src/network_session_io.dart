@@ -10,8 +10,36 @@ import 'network_models.dart';
 
 const _noEvent = 1;
 
+final class _WakeDispatcher {
+  _WakeDispatcher._() {
+    _callback = NativeCallable<ZbWakeNative>.listener(_onWake);
+  }
+
+  static final instance = _WakeDispatcher._();
+
+  late final NativeCallable<ZbWakeNative> _callback;
+  final Map<int, OronboxNetworkSession> _sessions = {};
+
+  Pointer<NativeFunction<ZbWakeNative>> get nativeFunction =>
+      _callback.nativeFunction;
+
+  void register(OronboxNetworkSession session) {
+    _sessions[session._handle] = session;
+  }
+
+  void unregister(OronboxNetworkSession session) {
+    if (identical(_sessions[session._handle], session)) {
+      _sessions.remove(session._handle);
+    }
+  }
+
+  void _onWake(int handle) {
+    _sessions[handle]?._scheduleDrain();
+  }
+}
+
 class OronboxNetworkSession {
-  OronboxNetworkSession._(this._bindings, this._handle, this._wakeCallback);
+  OronboxNetworkSession._(this._bindings, this._handle);
 
   static Future<OronboxNetworkSession> open({
     OronboxNetworkConfig config = const OronboxNetworkConfig(),
@@ -24,10 +52,7 @@ class OronboxNetworkSession {
       );
     }
 
-    late OronboxNetworkSession session;
-    final callback = NativeCallable<ZbWakeNative>.listener((int _) {
-      session._scheduleDrain();
-    });
+    final dispatcher = _WakeDispatcher.instance;
     final nativeConfig = calloc<ZbNetworkConfigNative>();
     final outHandle = calloc<Uint64>();
     final capturePath = config.capturePath?.toNativeUtf8();
@@ -44,18 +69,16 @@ class OronboxNetworkSession {
         ..capturePath = capturePath ?? nullptr;
       final status = bindings.open(
         nativeConfig,
-        callback.nativeFunction,
+        dispatcher.nativeFunction,
         outHandle,
       );
       if (status != 0) {
         throw StateError(bindings.errorMessage());
       }
-      session = OronboxNetworkSession._(bindings, outHandle.value, callback);
+      final session = OronboxNetworkSession._(bindings, outHandle.value);
+      dispatcher.register(session);
       session._scheduleDrain();
       return session;
-    } catch (_) {
-      callback.close();
-      rethrow;
     } finally {
       if (capturePath != null) calloc.free(capturePath);
       calloc.free(outHandle);
@@ -65,7 +88,6 @@ class OronboxNetworkSession {
 
   final OronboxNetworkBindings _bindings;
   final int _handle;
-  final NativeCallable<ZbWakeNative> _wakeCallback;
   final _events = StreamController<OronboxNetworkEvent>.broadcast(sync: true);
   final _outboundPackets = StreamController<Uint8List>.broadcast(sync: true);
 
@@ -106,7 +128,7 @@ class OronboxNetworkSession {
     if (_closed) return;
     _closed = true;
     final status = _bindings.close(_handle);
-    _wakeCallback.close();
+    _WakeDispatcher.instance.unregister(this);
     if (!_events.isClosed) {
       _events.add(const OronboxNetworkClosed());
     }

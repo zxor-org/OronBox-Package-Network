@@ -16,6 +16,15 @@ The wake callback is a notification only. It may run on a native runtime thread 
 
 After a wake, the host drains the queue with `ob_network_event_peek` and `ob_network_event_read` until `OB_NETWORK_NO_EVENT` is returned. Dart uses `NativeCallable.listener`, so native runtime threads only enqueue isolate messages while all FFI reads stay on the Dart isolate
 
+The Dart host owns one wake callback for the lifetime of its isolate and routes
+wakes by session handle. Closing an individual session unregisters its handle but
+does not close the `NativeCallable`. This makes a wake already queued on the Dart
+isolate harmless after the native session has stopped.
+
+Native integration tests may set `ORONBOX_NETWORK_LIBRARY` to an absolute
+dynamic-library path. Packaged applications leave it unset and use the normal
+platform library name.
+
 Packet events contain raw IPv4 packets that the host sends back to the Xiaomi protocol network channel. Statistics events contain UTF-8 JSON. State and warning events contain UTF-8 text
 
 ## Compatibility

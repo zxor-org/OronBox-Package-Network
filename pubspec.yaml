@@ -1,6 +1,6 @@
 name: oronbox_network
 description: Native userspace IP gateway for Xiaomi VelaOS devices
-version: 0.1.0
+version: 0.1.1
 repository: https://github.com/zxor-org/OronBox-Package-Network
 publish_to: none
 

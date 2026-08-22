@@ -135,6 +135,10 @@ class OronboxNetworkBindings {
 }
 
 DynamicLibrary _openLibrary() {
+  final overridePath = Platform.environment['ORONBOX_NETWORK_LIBRARY'];
+  if (overridePath != null && overridePath.isNotEmpty) {
+    return DynamicLibrary.open(overridePath);
+  }
   if (Platform.isWindows) {
     return DynamicLibrary.open('oronbox_network.dll');
   }

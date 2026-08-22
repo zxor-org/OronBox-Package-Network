@@ -244,16 +244,18 @@ impl NetworkSession {
         self.events.lock().pop_front()
     }
 
-    pub fn close(&self) {
+    pub fn close(&self) -> Vec<JoinHandle<()>> {
         if !self.alive.swap(false, Ordering::AcqRel) {
-            return;
+            return Vec::new();
         }
         let _callback_guard = self.callback_lock.lock();
         self.cancellation.cancel();
-        for task in self.tasks.lock().drain(..) {
+        let tasks = self.tasks.lock().drain(..).collect::<Vec<_>>();
+        for task in &tasks {
             task.abort();
         }
         self.events.lock().clear();
+        tasks
     }
 
     fn emit_packet(&self, packet: Vec<u8>) {
@@ -293,7 +295,9 @@ impl NetworkSession {
 
 impl Drop for NetworkSession {
     fn drop(&mut self) {
-        self.close();
+        for task in self.close() {
+            task.abort();
+        }
     }
 }
 

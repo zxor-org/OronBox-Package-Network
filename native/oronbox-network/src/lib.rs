@@ -257,7 +257,17 @@ pub extern "C" fn ob_network_close(handle: u64) -> i32 {
             .lock()
             .remove(&handle)
             .ok_or_else(|| StatusError::not_found(handle))?;
-        session.close();
+        let tasks = session.close();
+        RUNTIME.block_on(async move {
+            for task in tasks {
+                match task.await {
+                    Ok(()) => {}
+                    Err(error) if error.is_cancelled() => {}
+                    Err(error) => return Err(anyhow::anyhow!(error)),
+                }
+            }
+            Ok::<(), anyhow::Error>(())
+        })?;
         Ok(())
     })
 }

@@ -14,4 +14,29 @@ void main() {
     },
     skip: Platform.environment['ORONBOX_NETWORK_NATIVE_TEST'] != '1',
   );
+
+  test(
+    'reuses the isolate callback across rapid session shutdowns',
+    () async {
+      for (var index = 0; index < 100; index++) {
+        final session = await OronboxNetworkSession.open();
+        await session.close();
+      }
+      await Future<void>.delayed(Duration.zero);
+    },
+    skip: Platform.environment['ORONBOX_NETWORK_NATIVE_TEST'] != '1',
+  );
+
+  test(
+    'closing one session does not stop another session callback',
+    () async {
+      final first = await OronboxNetworkSession.open();
+      final second = await OronboxNetworkSession.open();
+      await first.close();
+      await Future<void>.delayed(const Duration(milliseconds: 150));
+      expect(second.snapshot.activeSessions, 0);
+      await second.close();
+    },
+    skip: Platform.environment['ORONBOX_NETWORK_NATIVE_TEST'] != '1',
+  );
 }
