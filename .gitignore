@@ -7,6 +7,8 @@
 /example/build/
 /android/.gradle/
 /macos/Frameworks/
+/.build/
+/.swiftpm/
 *.iml
 *.log
 .DS_Store

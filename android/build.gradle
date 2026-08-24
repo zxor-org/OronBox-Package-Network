@@ -1,5 +1,5 @@
 group 'org.zxor.oronbox.network'
-version '0.1.0'
+version '0.1.2'
 
 buildscript {
     repositories {
@@ -26,7 +26,7 @@ android {
     }
 }
 
-def networkVersion = '0.1.0'
+def networkVersion = '0.1.2'
 def releaseBase = "https://github.com/zxor-org/OronBox-Package-Network/releases/download/v${networkVersion}"
 def outputDir = file("$buildDir/oronboxNetwork")
 def archive = file("$outputDir/oronbox-network-android.zip")

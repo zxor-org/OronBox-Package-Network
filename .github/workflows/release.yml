@@ -91,10 +91,25 @@ jobs:
           cp LICENSE README.md THIRD_PARTY_NOTICES.md package/
           tar -czf "$asset" -C package lib include LICENSE README.md THIRD_PARTY_NOTICES.md
           shasum -a 256 "$asset" > "$asset.sha256"
+          rm -rf package/oronbox_network.xcframework package/xcframework-headers
+          mkdir -p package/xcframework-headers
+          cp include/oronbox_network.h package/xcframework-headers/
+          xcodebuild -create-xcframework \
+            -library package/lib/liboronbox_network.dylib \
+            -headers package/xcframework-headers \
+            -output package/oronbox_network.xcframework
+          rm -rf package/xcframework-headers
+          xcrun --sdk macosx lipo -info package/oronbox_network.xcframework/macos-arm64_x86_64/liboronbox_network.dylib
+          xcframework_asset="oronbox-network-macos-universal.xcframework.zip"
+          ditto -c -k --sequesterRsrc --keepParent \
+            package/oronbox_network.xcframework "$xcframework_asset"
+          shasum -a 256 "$xcframework_asset" > "$xcframework_asset.sha256"
       - uses: actions/upload-artifact@v4
         with:
           name: macos-universal
-          path: oronbox-network-macos-universal.tar.gz*
+          path: |
+            oronbox-network-macos-universal.tar.gz*
+            oronbox-network-macos-universal.xcframework.zip*
 
   android:
     runs-on: ubuntu-latest

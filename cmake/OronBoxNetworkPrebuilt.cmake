@@ -1,4 +1,4 @@
-set(ORONBOX_NETWORK_VERSION "0.1.0")
+set(ORONBOX_NETWORK_VERSION "0.1.2")
 set(ORONBOX_NETWORK_RELEASE_BASE
     "https://github.com/zxor-org/OronBox-Package-Network/releases/download/v${ORONBOX_NETWORK_VERSION}")
 
