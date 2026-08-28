@@ -10,6 +10,13 @@ import 'network_models.dart';
 
 const _noEvent = 1;
 
+/// Delivers native wake notifications to the Dart isolate without retaining a
+/// per-session callback that can be closed while native work is still in
+/// flight.
+///
+/// The callback intentionally lives for the lifetime of the isolate. Session
+/// handles are removed only after the native close barrier has completed, so a
+/// notification already queued by [NativeCallable.listener] is harmless.
 final class _WakeDispatcher {
   _WakeDispatcher._() {
     _callback = NativeCallable<ZbWakeNative>.listener(_onWake);
@@ -127,8 +134,12 @@ class OronboxNetworkSession {
   Future<void> close() async {
     if (_closed) return;
     _closed = true;
-    final status = _bindings.close(_handle);
-    _WakeDispatcher.instance.unregister(this);
+    late final int status;
+    try {
+      status = _bindings.close(_handle);
+    } finally {
+      _WakeDispatcher.instance.unregister(this);
+    }
     if (!_events.isClosed) {
       _events.add(const OronboxNetworkClosed());
     }

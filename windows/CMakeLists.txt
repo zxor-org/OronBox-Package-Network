@@ -8,7 +8,8 @@ if(NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
   message(FATAL_ERROR "OronBox Network supports 64-bit Windows builds only")
 endif()
 
-set(PREBUILT_DIR "${CMAKE_CURRENT_BINARY_DIR}/prebuilt")
+set(PREBUILT_DIR
+  "${CMAKE_CURRENT_BINARY_DIR}/prebuilt/${ORONBOX_NETWORK_VERSION}")
 oronbox_network_fetch("oronbox-network-windows-x86_64.zip" "${PREBUILT_DIR}")
 
 add_library(oronbox_network SHARED IMPORTED GLOBAL)

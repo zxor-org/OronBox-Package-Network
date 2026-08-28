@@ -1,5 +1,5 @@
 group 'org.zxor.oronbox.network'
-version '0.1.2'
+version '0.1.3'
 
 buildscript {
     repositories {
@@ -10,6 +10,11 @@ buildscript {
         classpath 'com.android.tools.build:gradle:8.9.1'
     }
 }
+
+def networkVersion = '0.1.3'
+def releaseBase = "https://github.com/zxor-org/OronBox-Package-Network/releases/download/v${networkVersion}"
+def outputDir = file("$buildDir/oronboxNetwork/$networkVersion")
+def archive = file("$outputDir/oronbox-network-android.zip")
 
 apply plugin: 'com.android.library'
 
@@ -22,14 +27,9 @@ android {
     }
 
     sourceSets {
-        main.jniLibs.srcDirs = ["$buildDir/oronboxNetwork/jniLibs"]
+        main.jniLibs.srcDirs = ["$outputDir/jniLibs"]
     }
 }
-
-def networkVersion = '0.1.2'
-def releaseBase = "https://github.com/zxor-org/OronBox-Package-Network/releases/download/v${networkVersion}"
-def outputDir = file("$buildDir/oronboxNetwork")
-def archive = file("$outputDir/oronbox-network-android.zip")
 
 tasks.register('fetchOronboxNetwork') {
     outputs.dir(file("$outputDir/jniLibs"))

@@ -12,7 +12,8 @@ else()
   message(FATAL_ERROR "Unsupported Linux architecture: ${CMAKE_SYSTEM_PROCESSOR}")
 endif()
 
-set(PREBUILT_DIR "${CMAKE_CURRENT_BINARY_DIR}/prebuilt")
+set(PREBUILT_DIR
+  "${CMAKE_CURRENT_BINARY_DIR}/prebuilt/${ORONBOX_NETWORK_VERSION}")
 oronbox_network_fetch(
   "oronbox-network-linux-${ORONBOX_NETWORK_ARCH}.tar.gz"
   "${PREBUILT_DIR}")

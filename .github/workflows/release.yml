@@ -125,31 +125,100 @@ jobs:
       - uses: taiki-e/install-action@v2
         with:
           tool: cargo-ndk
-      - run: cargo ndk -t arm64-v8a -t armeabi-v7a -t x86_64 -o package/jniLibs build --release --locked
+      - name: Build Android native libraries with debug information
+        env:
+          CARGO_PROFILE_RELEASE_DEBUG: '2'
+          CARGO_PROFILE_RELEASE_STRIP: none
+        run: cargo ndk -t arm64-v8a -t armeabi-v7a -t x86_64 -o package/jniLibs build --release --locked
       - name: Package
         run: |
           set -euo pipefail
           asset="oronbox-network-android.zip"
+          symbols_asset="oronbox-network-android.symbols.zip"
+          mkdir -p symbols/android
+          ndk_root="${ANDROID_NDK_ROOT:-${ANDROID_NDK_HOME:-}}"
+          test -n "$ndk_root"
+          llvm_objcopy="$(find "$ndk_root/toolchains/llvm/prebuilt" -name llvm-objcopy -print -quit)"
+          llvm_strip="$(find "$ndk_root/toolchains/llvm/prebuilt" -name llvm-strip -print -quit)"
+          test -x "$llvm_objcopy"
+          test -x "$llvm_strip"
+          for abi in arm64-v8a armeabi-v7a x86_64; do
+            library="package/jniLibs/${abi}/liboronbox_network.so"
+            debug_symbols="symbols/android/${abi}/liboronbox_network.so.debug"
+            test -f "$library"
+            mkdir -p "$(dirname "$debug_symbols")"
+            "$llvm_objcopy" --only-keep-debug "$library" "$debug_symbols"
+            "$llvm_strip" --strip-unneeded "$library"
+          done
+          {
+            echo "package=oronbox-network"
+            echo "tag=${GITHUB_REF_NAME}"
+            echo "commit=$(git rev-parse HEAD)"
+            echo "rustc=$(rustc --version)"
+            for abi in arm64-v8a armeabi-v7a x86_64; do
+              library="package/jniLibs/${abi}/liboronbox_network.so"
+              debug_symbols="symbols/android/${abi}/liboronbox_network.so.debug"
+              echo "${abi}_runtime_sha256=$(sha256sum "$library" | cut -d' ' -f1)"
+              echo "${abi}_debug_sha256=$(sha256sum "$debug_symbols" | cut -d' ' -f1)"
+            done
+          } > symbols/android/manifest.txt
           cp LICENSE README.md THIRD_PARTY_NOTICES.md package/
           (cd package && zip -9 -r "../$asset" jniLibs LICENSE README.md THIRD_PARTY_NOTICES.md)
+          (cd symbols && zip -9 -r "../$symbols_asset" android)
           sha256sum "$asset" > "$asset.sha256"
+          sha256sum "$symbols_asset" > "$symbols_asset.sha256"
       - uses: actions/upload-artifact@v4
         with:
           name: android
-          path: oronbox-network-android.zip*
+          path: |
+            oronbox-network-android.zip*
+            oronbox-network-android.symbols.zip*
 
   publish:
     needs: [linux, windows, macos, android]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
       - uses: actions/download-artifact@v4
         with:
           pattern: '*'
           merge-multiple: true
           path: dist
+      - name: Finalize Swift Package binary target
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME}"
+          version="${tag#v}"
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+
+          checksum_file="dist/oronbox-network-macos-universal.xcframework.zip.sha256"
+          manifest="macos/oronbox_network/Package.swift"
+          test -s "$checksum_file"
+          test -f "$manifest"
+          checksum="$(awk 'NF { print $1; exit }' "$checksum_file")"
+          [[ "$checksum" =~ ^[0-9a-fA-F]{64}$ ]]
+
+          perl -0pi -e "s#(url: \"https://github\\.com/zxor-org/OronBox-Package-Network/releases/download/)v[^/]+(/oronbox-network-macos-universal\\.xcframework\\.zip\")#\${1}v${version}\${2}#; s#checksum: \"[0-9a-fA-F]+\"#checksum: \"${checksum}\"#" "$manifest"
+          grep -Fq "releases/download/v${version}/oronbox-network-macos-universal.xcframework.zip" "$manifest"
+          grep -Fq "checksum: \"${checksum}\"" "$manifest"
+
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          if ! git diff --quiet -- "$manifest"; then
+            git add "$manifest"
+            git commit -m "build(release): pin Swift package binary for ${tag}"
+          fi
+          git tag -f "$tag" HEAD
+          git push origin "refs/tags/${tag}" --force
       - name: Publish GitHub release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ github.ref_name }}
           generate_release_notes: true
           files: dist/*

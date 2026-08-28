@@ -34,6 +34,8 @@ enum ob_network_event_kind {
 
 typedef void (*ob_network_wake_callback)(uint64_t handle);
 
+/* Pass NULL only for hosts that provide their own event delivery mechanism. */
+
 typedef struct ob_network_config {
   uint32_t abi_version;
   uint16_t mtu;

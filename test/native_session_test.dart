@@ -11,7 +11,7 @@ void main() {
     await session.close();
   }, skip: Platform.environment['ORONBOX_NETWORK_NATIVE_TEST'] != '1');
 
-  test('reuses the isolate callback across rapid session shutdowns', () async {
+  test('delivers callback notifications across rapid session shutdowns', () async {
     for (var index = 0; index < 100; index++) {
       final session = await OronboxNetworkSession.open();
       await session.close();

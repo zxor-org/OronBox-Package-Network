@@ -12,14 +12,18 @@ The public native boundary is the versioned C ABI declared in [`include/oronbox_
 
 ## Event delivery
 
-The wake callback is a notification only. It may run on a native runtime thread and must not perform blocking work or call back into the session directly
-
-After a wake, the host drains the queue with `ob_network_event_peek` and `ob_network_event_read` until `OB_NETWORK_NO_EVENT` is returned. Dart uses `NativeCallable.listener`, so native runtime threads only enqueue isolate messages while all FFI reads stay on the Dart isolate
+The wake callback is an optional notification. It may run on a native runtime
+thread and must not perform blocking work or call back into the session
+directly. The Flutter/Dart host uses `NativeCallable.listener`: the native
+runtime wakes the Dart isolate and the isolate drains the bounded event queue
+on demand. There is no periodic polling timer.
 
 The Dart host owns one wake callback for the lifetime of its isolate and routes
-wakes by session handle. Closing an individual session unregisters its handle but
-does not close the `NativeCallable`. This makes a wake already queued on the Dart
-isolate harmless after the native session has stopped.
+wakes by session handle. Closing an individual session unregisters its handle
+only after `ob_network_close` has stopped the native tasks. This makes a wake
+already queued on the Dart isolate harmless after the native session has
+stopped. Hosts without a Dart callback may pass null when they provide another
+event delivery mechanism.
 
 Native integration tests may set `ORONBOX_NETWORK_LIBRARY` to an absolute
 dynamic-library path. Packaged applications leave it unset and use the normal

@@ -74,7 +74,7 @@ pub struct NetworkSession {
     handle: AtomicU64,
     ingress: mpsc::Sender<Vec<u8>>,
     events: Mutex<VecDeque<NetworkEvent>>,
-    callback: WakeCallback,
+    callback: Option<WakeCallback>,
     callback_lock: Mutex<()>,
     cancellation: CancellationToken,
     tasks: Mutex<Vec<JoinHandle<()>>>,
@@ -86,7 +86,7 @@ pub struct NetworkSession {
 impl NetworkSession {
     pub fn start(
         config: NetworkConfig,
-        callback: WakeCallback,
+        callback: Option<WakeCallback>,
         runtime: &Handle,
     ) -> Result<Arc<Self>> {
         let (ingress_tx, mut ingress_rx) = mpsc::channel(config.ingress_capacity.max(1));
@@ -286,8 +286,10 @@ impl NetworkSession {
         events.push_back(NetworkEvent { kind, payload });
         drop(events);
         let handle = self.handle.load(Ordering::Acquire);
-        if handle != 0 {
-            unsafe { (self.callback)(handle) };
+        if handle != 0
+            && let Some(callback) = self.callback
+        {
+            unsafe { callback(handle) };
         }
         true
     }

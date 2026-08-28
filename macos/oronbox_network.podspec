@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = 'oronbox_network'
-  s.version          = '0.1.2'
+  s.version          = '0.1.3'
   s.summary          = 'Userspace IP gateway for Xiaomi wearable devices'
   s.description      = <<-DESC
 Native network package used by OronBox for Xiaomi Vela OS and MiWear devices.
@@ -15,7 +15,7 @@ Native network package used by OronBox for Xiaomi Vela OS and MiWear devices.
   s.vendored_libraries = 'Frameworks/liboronbox_network.dylib'
   s.prepare_command = <<-CMD
     set -eu
-    VERSION=0.1.2
+    VERSION=0.1.3
     BASE="https://github.com/zxor-org/OronBox-Package-Network/releases/download/v${VERSION}"
     ASSET="oronbox-network-macos-universal.tar.gz"
     mkdir -p Frameworks

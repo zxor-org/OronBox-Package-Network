@@ -81,7 +81,10 @@ pub extern "C" fn ob_network_abi_version() -> u32 {
 ///
 /// `config` and `out_handle` must point to valid values for the duration of
 /// this call. A non-null `capture_path` must point to a valid NUL-terminated
-/// string. `callback` must remain callable until `ob_network_close` returns.
+/// string. If `callback` is non-null, it must remain callable until
+/// `ob_network_close` returns. A null callback disables native wake
+/// notifications and is intended only for hosts with another event delivery
+/// mechanism.
 pub unsafe extern "C" fn ob_network_open(
     config: *const ZbNetworkConfig,
     callback: Option<WakeCallback>,
@@ -90,7 +93,6 @@ pub unsafe extern "C" fn ob_network_open(
     ffi_result(|| {
         let config =
             unsafe { config.as_ref() }.ok_or_else(|| StatusError::invalid("config is null"))?;
-        let callback = callback.ok_or_else(|| StatusError::invalid("wake callback is null"))?;
         let out_handle = unsafe { out_handle.as_mut() }
             .ok_or_else(|| StatusError::invalid("out_handle is null"))?;
         if config.abi_version != ABI_VERSION {
@@ -402,6 +404,17 @@ mod tests {
         assert_eq!(snapshot.active, 1);
         assert_eq!(ob_network_close(handle), ZB_OK);
         assert_eq!(ob_network_close(handle), ZB_NOT_FOUND);
+    }
+
+    #[test]
+    fn opens_without_a_wake_callback_for_external_event_hosts() {
+        let mut handle = 0;
+        assert_eq!(
+            unsafe { ob_network_open(&config(), None, &mut handle) },
+            ZB_OK
+        );
+        assert_ne!(handle, 0);
+        assert_eq!(ob_network_close(handle), ZB_OK);
     }
 
     #[test]
