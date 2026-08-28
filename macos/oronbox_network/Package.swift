@@ -32,8 +32,8 @@ let package = Package(
         ),
         .binaryTarget(
             name: "OronBoxNetworkBinary",
-            url: "https://github.com/zxor-org/OronBox-Package-Network/releases/download/v0.1.2/oronbox-network-macos-universal.xcframework.zip",
-            checksum: "2bc68b89f0870f8138fbe9cba397cd6c54877beece1f5da4f482e28f3dc73753"
+            url: "https://github.com/zxor-org/OronBox-Package-Network/releases/download/v0.1.3/oronbox-network-macos-universal.xcframework.zip",
+            checksum: "da5b3261a3b12a0c5a4dfef182a4a5f9c77d13782326a049dbc0972e56b1ee53"
         )
     ]
 )
